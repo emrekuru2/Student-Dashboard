@@ -2,185 +2,142 @@ import { useState } from 'react';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
-  Grid,
-  TextField
+  TextField, Typography
 } from '@material-ui/core';
+import React, { Component } from 'react';
+import * as Yup from 'yup';
+import { Formik } from 'formik';
+import { auth, firestore } from '../../firebase';
 
-const states = [
-  {
-    value: 'alabama',
-    label: 'Alabama'
-  },
-  {
-    value: 'new-york',
-    label: 'New York'
-  },
-  {
-    value: 'san-francisco',
-    label: 'San Francisco'
+
+class AccountProfileDetails extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      student : {}
+    }
+
   }
-];
 
-const AccountProfileDetails = (props) => {
-  const [values, setValues] = useState({
-    firstName: 'Katarina',
-    lastName: 'Smith',
-    email: 'demo@devias.io',
-    phone: '',
-    state: 'Alabama',
-    country: 'USA'
-  });
+  componentDidMount() {
+    firestore.collection('students')
+      .get()
+      .then( snapshot => {
+        const user = auth.currentUser.uid
+        snapshot.forEach(doc => {
+          const data = doc.data()
+          const uid = doc.id;
+          if (user === uid) {
+            this.setState({student : data})
+          }
+        })
 
-  const handleChange = (event) => {
-    setValues({
-      ...values,
-      [event.target.name]: event.target.value
-    });
-  };
+      }).catch( error => console.log(error))
 
-  return (
-    <form
-      autoComplete="off"
-      noValidate
-      {...props}
-    >
-      <Card>
-        <CardHeader
-          subheader="The information can be edited"
-          title="Profile"
-        />
-        <Divider />
-        <CardContent>
-          <Grid
-            container
-            spacing={3}
-          >
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
-              <TextField
-                fullWidth
-                helperText="Please specify the first name"
-                label="First name"
-                name="firstName"
-                onChange={handleChange}
-                required
-                value={values.firstName}
-                variant="outlined"
-              />
-            </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
-              <TextField
-                fullWidth
-                label="Last name"
-                name="lastName"
-                onChange={handleChange}
-                required
-                value={values.lastName}
-                variant="outlined"
-              />
-            </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
-              <TextField
-                fullWidth
-                label="Email Address"
-                name="email"
-                onChange={handleChange}
-                required
-                value={values.email}
-                variant="outlined"
-              />
-            </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
-              <TextField
-                fullWidth
-                label="Phone Number"
-                name="phone"
-                onChange={handleChange}
-                type="number"
-                value={values.phone}
-                variant="outlined"
-              />
-            </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
-              <TextField
-                fullWidth
-                label="Country"
-                name="country"
-                onChange={handleChange}
-                required
-                value={values.country}
-                variant="outlined"
-              />
-            </Grid>
-            <Grid
-              item
-              md={6}
-              xs={12}
-            >
-              <TextField
-                fullWidth
-                label="Select State"
-                name="state"
-                onChange={handleChange}
-                required
-                select
-                SelectProps={{ native: true }}
-                value={values.state}
-                variant="outlined"
+  }
+
+
+  firestoreSubmit(firstname, lastname) {
+    const user = auth.currentUser.uid
+    firestore.collection('students')
+      .doc(user)
+      .update({
+        firstname: firstname,
+        lastname: lastname,
+      }).then(r => {
+        alert("updated successfully")
+    })
+  }
+
+
+  render() {
+    const student = this.state.student
+    return (
+      <Formik
+        initialValues={{
+          firstName: '',
+          lastName: ''
+        }}
+        validationSchema={
+          Yup.object().shape({
+            firstName: Yup.string().max(255).required('First name is required'),
+            lastName: Yup.string().max(255).required('Last name is required'),
+
+          })
+        }
+        onSubmit={(values) => {
+          this.firestoreSubmit(values.firstName, values.lastName)
+
+        }}
+      >
+        {({
+          errors,
+          handleBlur,
+          handleChange,
+          handleSubmit,
+          isSubmitting,
+          touched,
+          values}) => (
+          <form onSubmit={handleSubmit}>
+            <Box sx={{ mb: 0 }}>
+              <Typography
+                color="textPrimary"
+                variant="h2"
               >
-                {states.map((option) => (
-                  <option
-                    key={option.value}
-                    value={option.value}
-                  >
-                    {option.label}
-                  </option>
-                ))}
-              </TextField>
-            </Grid>
-          </Grid>
-        </CardContent>
-        <Divider />
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            p: 2
-          }}
-        >
-          <Button
-            color="primary"
-            variant="contained"
-          >
-            Save details
-          </Button>
-        </Box>
-      </Card>
-    </form>
-  );
-};
+                Change account information
+              </Typography>
+              <Typography
+                color="textPrimary"
+                variant="body1"
+              >
+                Please fill both fields to change
+              </Typography>
+            </Box>
+            <TextField
+              error={Boolean(touched.firstName && errors.firstName)}
+              fullWidth
+              helperText={touched.firstName && errors.firstName}
+              label= {student.firstname}
+              margin="normal"
+              name="firstName"
+              onBlur={handleBlur}
+              onChange={handleChange}
+              value={values.firstName}
+              variant="outlined"
+            />
+            <TextField
+              error={Boolean(touched.lastName && errors.lastName)}
+              fullWidth
+              helperText={touched.lastName && errors.lastName}
+              label= {student.lastname}
+              margin="normal"
+              name="lastName"
+              onBlur={handleBlur}
+              onChange={handleChange}
+              value={values.lastName}
+              variant="outlined"
+            />
+            <Box sx={{ py: 2 }}>
+              <Button
+                color="primary"
+                onClick={isSubmitting}
+                fullWidth
+                size="large"
+                type="submit"
+                variant="contained"
+              >
+                Change now
+              </Button>
+            </Box>
+          </form>
+        )}
+      </Formik>
+    );
+  }
+}
+
 
 export default AccountProfileDetails;
+
+
+

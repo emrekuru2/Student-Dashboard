@@ -1,4 +1,4 @@
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink} from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import * as Yup from 'yup';
 import { Formik } from 'formik';
@@ -11,16 +11,62 @@ import {
   TextField,
   Typography
 } from '@material-ui/core';
-import FacebookIcon from 'src/icons/Facebook';
 import GoogleIcon from 'src/icons/Google';
+import { auth, firestore, provider} from '../firebase';
+import { useDispatch } from 'react-redux';
+import { loginTime, showSuccessSnackbar } from '../actions';
+
 
 const Login = () => {
-  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const signInWithMail = (email, password) => {
+    let user = null
+
+    if(auth.currentUser !== null) {
+      user = auth.currentUser.emailVerified
+    }
+
+    auth.signInWithEmailAndPassword(email, password)
+      .then((userCredential) => {
+        if(user) {
+          const user = userCredential.user;
+          dispatch(showSuccessSnackbar("Logged " + user.email + " successfully"))
+          dispatch(loginTime())
+        } else {
+          dispatch(showSuccessSnackbar("Please verify your email address"))
+        }
+      })
+      .catch((error) => {
+        dispatch(showSuccessSnackbar(error.message))
+      }
+      );
+  }
+
+  const signInWithGoogle = () => {
+    auth.signInWithPopup(provider)
+      .then((result) => {
+        const user = result.user;
+        const temp = user.displayName.split(' ');
+        firestore.collection('students').doc(user.uid).set({
+          email: user.email,
+          firstname: temp[0],
+          lastname: temp[1],
+          classes: []
+        }, { merge: true }).then(r =>  {
+          dispatch(showSuccessSnackbar("Logged " + user.displayName + " successfully"))
+          dispatch(loginTime())
+        })
+
+      }).catch((error) => {
+        dispatch(showSuccessSnackbar(error.message))
+    })
+  }
 
   return (
     <>
       <Helmet>
-        <title>Login | Material Kit</title>
+        <title>Login</title>
       </Helmet>
       <Box
         sx={{
@@ -34,15 +80,16 @@ const Login = () => {
         <Container maxWidth="sm">
           <Formik
             initialValues={{
-              email: 'demo@devias.io',
-              password: 'Password123'
+              email: '',
+              password: ''
             }}
             validationSchema={Yup.object().shape({
               email: Yup.string().email('Must be a valid email').max(255).required('Email is required'),
               password: Yup.string().max(255).required('Password is required')
             })}
-            onSubmit={() => {
-              navigate('/app/dashboard', { replace: true });
+            onSubmit={(values) => {
+              signInWithMail(values.email, values.password)
+
             }}
           >
             {({
@@ -73,32 +120,17 @@ const Login = () => {
                 <Grid
                   container
                   spacing={3}
+                  justifyContent='center'
                 >
                   <Grid
                     item
                     xs={12}
-                    md={6}
-                  >
-                    <Button
-                      color="primary"
-                      fullWidth
-                      startIcon={<FacebookIcon />}
-                      onClick={handleSubmit}
-                      size="large"
-                      variant="contained"
-                    >
-                      Login with Facebook
-                    </Button>
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    md={6}
+                    md={12}
                   >
                     <Button
                       fullWidth
                       startIcon={<GoogleIcon />}
-                      onClick={handleSubmit}
+                      onClick={() => signInWithGoogle()}
                       size="large"
                       variant="contained"
                     >
@@ -149,7 +181,7 @@ const Login = () => {
                 <Box sx={{ py: 2 }}>
                   <Button
                     color="primary"
-                    disabled={isSubmitting}
+                    onClick={() => isSubmitting}
                     fullWidth
                     size="large"
                     type="submit"

@@ -5,21 +5,47 @@ import { Formik } from 'formik';
 import {
   Box,
   Button,
-  Checkbox,
   Container,
-  FormHelperText,
+  Grid,
   Link,
   TextField,
   Typography
 } from '@material-ui/core';
+import { auth, firestore } from '../firebase';
+import { useDispatch} from 'react-redux';
+import { showSuccessSnackbar} from '../actions';
+
 
 const Register = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch()
+
+  const signUpWithMail = (email, password, firstname, lastname) => {
+    auth.createUserWithEmailAndPassword(email, password)
+      .then((userCredential) => {
+        const user = userCredential.user;
+        firestore.collection('students').doc(user.uid).set({
+          email: email,
+          firstname: firstname,
+          lastname: lastname,
+          classes: []
+        }, { merge: true }).then(r => {
+          user.sendEmailVerification().then(verification => {
+            dispatch(showSuccessSnackbar("Registered successfully. Please verify your email address"))
+            navigate('/login', {replace: true})
+          })
+
+        })
+      }).catch((error) => {
+        dispatch(showSuccessSnackbar(error.message))
+
+    });
+  }
 
   return (
     <>
       <Helmet>
-        <title>Register | Material Kit</title>
+        <title>Register</title>
       </Helmet>
       <Box
         sx={{
@@ -37,32 +63,25 @@ const Register = () => {
               firstName: '',
               lastName: '',
               password: '',
-              policy: false
+              passwordConfirmation: ''
             }}
             validationSchema={
               Yup.object().shape({
                 email: Yup.string().email('Must be a valid email').max(255).required('Email is required'),
                 firstName: Yup.string().max(255).required('First name is required'),
                 lastName: Yup.string().max(255).required('Last name is required'),
-                password: Yup.string().max(255).required('password is required'),
-                policy: Yup.boolean().oneOf([true], 'This field must be checked')
+                password: Yup.string().min(8, 'Password is too short - should be 8 chars minimum.').required('password is required'),
+                passwordConfirmation: Yup.string().oneOf([Yup.ref('password'), null], 'Passwords must match')
               })
             }
-            onSubmit={() => {
-              navigate('/app/dashboard', { replace: true });
+            onSubmit={(values) => {
+              signUpWithMail(values.email, values.password, values.firstName, values.lastName)
+
             }}
           >
-            {({
-              errors,
-              handleBlur,
-              handleChange,
-              handleSubmit,
-              isSubmitting,
-              touched,
-              values
-            }) => (
-              <form onSubmit={handleSubmit}>
-                <Box sx={{ mb: 3 }}>
+            {props => (
+              <form onSubmit={props.handleSubmit}>
+                <Box sx={{ mb: 1 }}>
                   <Typography
                     color="textPrimary"
                     variant="h2"
@@ -78,101 +97,86 @@ const Register = () => {
                   </Typography>
                 </Box>
                 <TextField
-                  error={Boolean(touched.firstName && errors.firstName)}
+                  error={Boolean(props.touched.firstName && props.errors.firstName)}
                   fullWidth
-                  helperText={touched.firstName && errors.firstName}
+                  helperText={props.touched.firstName && props.errors.firstName}
                   label="First name"
                   margin="normal"
                   name="firstName"
-                  onBlur={handleBlur}
-                  onChange={handleChange}
-                  value={values.firstName}
+                  onBlur={props.handleBlur}
+                  onChange={props.handleChange}
+                  value={props.values.firstName}
                   variant="outlined"
                 />
                 <TextField
-                  error={Boolean(touched.lastName && errors.lastName)}
+                  error={Boolean(props.touched.lastName && props.errors.lastName)}
                   fullWidth
-                  helperText={touched.lastName && errors.lastName}
+                  helperText={props.touched.lastName && props.errors.lastName}
                   label="Last name"
                   margin="normal"
                   name="lastName"
-                  onBlur={handleBlur}
-                  onChange={handleChange}
-                  value={values.lastName}
+                  onBlur={props.handleBlur}
+                  onChange={props.handleChange}
+                  value={props.values.lastName}
                   variant="outlined"
                 />
                 <TextField
-                  error={Boolean(touched.email && errors.email)}
+                  error={Boolean(props.touched.email && props.errors.email)}
                   fullWidth
-                  helperText={touched.email && errors.email}
+                  helperText={props.touched.email && props.errors.email}
                   label="Email Address"
                   margin="normal"
                   name="email"
-                  onBlur={handleBlur}
-                  onChange={handleChange}
+                  onBlur={props.handleBlur}
+                  onChange={props.handleChange}
                   type="email"
-                  value={values.email}
+                  value={props.values.email}
                   variant="outlined"
                 />
-                <TextField
-                  error={Boolean(touched.password && errors.password)}
-                  fullWidth
-                  helperText={touched.password && errors.password}
-                  label="Password"
-                  margin="normal"
-                  name="password"
-                  onBlur={handleBlur}
-                  onChange={handleChange}
-                  type="password"
-                  value={values.password}
-                  variant="outlined"
-                />
-                <Box
-                  sx={{
-                    alignItems: 'center',
-                    display: 'flex',
-                    ml: -1
-                  }}
-                >
-                  <Checkbox
-                    checked={values.policy}
-                    name="policy"
-                    onChange={handleChange}
-                  />
-                  <Typography
-                    color="textSecondary"
-                    variant="body1"
-                  >
-                    I have read the
-                    {' '}
-                    <Link
-                      color="primary"
-                      component={RouterLink}
-                      to="#"
-                      underline="always"
-                      variant="h6"
-                    >
-                      Terms and Conditions
-                    </Link>
-                  </Typography>
-                </Box>
-                {Boolean(touched.policy && errors.policy) && (
-                  <FormHelperText error>
-                    {errors.policy}
-                  </FormHelperText>
-                )}
-                <Box sx={{ py: 2 }}>
-                  <Button
-                    color="primary"
-                    disabled={isSubmitting}
+                <Grid container spacing={3} justifyContent={'center'}>
+                  <Grid item xs={6}>
+                    <TextField
+                      error={Boolean(props.touched.password && props.errors.password)}
+                      fullWidth
+                      helperText={props.touched.password && props.errors.password}
+                      label="Password"
+                      margin="normal"
+                      name="password"
+                      onBlur={props.handleBlur}
+                      onChange={props.handleChange}
+                      type="password"
+                      value={props.values.password}
+                      variant="outlined"
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                    error={Boolean(props.touched.passwordConfirmation && props.errors.passwordConfirmation)}
                     fullWidth
-                    size="large"
-                    type="submit"
-                    variant="contained"
-                  >
-                    Sign up now
-                  </Button>
-                </Box>
+                    helperText={props.touched.passwordConfirmation && props.errors.passwordConfirmation}
+                    label="Password Confirmation"
+                    margin="normal"
+                    name="passwordConfirmation"
+                    onBlur={props.handleBlur}
+                    onChange={props.handleChange}
+                    type="password"
+                    value={props.values.passwordConfirmation}
+                    variant="outlined"
+                    />
+                  </Grid>
+                  </Grid>
+                  <Box sx={{ py: 2 }}>
+                    <Button
+                      color="primary"
+                      onClick={props.isSubmitting}
+                      fullWidth
+                      size="large"
+                      type="submit"
+                      variant="contained"
+                    >
+                      Sign up now
+                    </Button>
+                  </Box>
                 <Typography
                   color="textSecondary"
                   variant="body1"

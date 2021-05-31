@@ -1,49 +1,27 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { Avatar, Box, Divider, Drawer, Hidden, List, Typography } from '@material-ui/core';
 import {
-  Avatar,
-  Box,
-  Button,
-  Divider,
-  Drawer,
-  Hidden,
-  List,
-  Typography
-} from '@material-ui/core';
-import {
-  AlertCircle as AlertCircleIcon,
-  BarChart as BarChartIcon,
-  Lock as LockIcon,
+  BookOpen as ClassesIcon,
+  Clipboard as BoardIcon,
   Settings as SettingsIcon,
-  ShoppingBag as ShoppingBagIcon,
-  User as UserIcon,
-  UserPlus as UserPlusIcon,
-  Users as UsersIcon
+  User as UserIcon
 } from 'react-feather';
 import NavItem from './NavItem';
+import { auth, firestore } from '../firebase';
 
-const user = {
-  avatar: '/static/images/avatars/avatar_6.png',
-  jobTitle: 'Senior Developer',
-  name: 'Katarina Smith'
-};
 
 const items = [
   {
     href: '/app/dashboard',
-    icon: BarChartIcon,
+    icon: BoardIcon,
     title: 'Dashboard'
   },
   {
-    href: '/app/customers',
-    icon: UsersIcon,
-    title: 'Customers'
-  },
-  {
     href: '/app/products',
-    icon: ShoppingBagIcon,
-    title: 'Products'
+    icon: ClassesIcon,
+    title: 'Classes'
   },
   {
     href: '/app/account',
@@ -54,32 +32,44 @@ const items = [
     href: '/app/settings',
     icon: SettingsIcon,
     title: 'Settings'
-  },
-  {
-    href: '/login',
-    icon: LockIcon,
-    title: 'Login'
-  },
-  {
-    href: '/register',
-    icon: UserPlusIcon,
-    title: 'Register'
-  },
-  {
-    href: '/404',
-    icon: AlertCircleIcon,
-    title: 'Error'
   }
 ];
 
 const DashboardSidebar = ({ onMobileClose, openMobile }) => {
   const location = useLocation();
+  let [person, setPerson] = useState('');
 
   useEffect(() => {
     if (openMobile && onMobileClose) {
       onMobileClose();
     }
+
+    console.log("DashboardSideBar")
+
+    firestore.collection('students')
+      .get()
+      .then( snapshot => {
+        let fullname = '';
+        const user = auth.currentUser.uid
+        snapshot.forEach(doc => {
+          const data = doc.data()
+          const uid = doc.id;
+          if (user === uid) {
+            const firstname = data.firstname + " "
+            const lastname = data.lastname
+            fullname = firstname.concat(lastname)
+          }
+        })
+        setPerson(fullname)
+      }).catch( error => console.log(error))
+
   }, [location.pathname]);
+
+  const user = {
+    avatar: '/static/images/avatars/avatar_6.png',
+    jobTitle: 'student',
+    name: person
+};
 
   const content = (
     <Box
@@ -99,7 +89,6 @@ const DashboardSidebar = ({ onMobileClose, openMobile }) => {
       >
         <Avatar
           component={RouterLink}
-          src={user.avatar}
           sx={{
             cursor: 'pointer',
             width: 64,
@@ -132,44 +121,6 @@ const DashboardSidebar = ({ onMobileClose, openMobile }) => {
             />
           ))}
         </List>
-      </Box>
-      <Box sx={{ flexGrow: 1 }} />
-      <Box
-        sx={{
-          backgroundColor: 'background.default',
-          m: 2,
-          p: 2
-        }}
-      >
-        <Typography
-          align="center"
-          gutterBottom
-          variant="h4"
-        >
-          Need more?
-        </Typography>
-        <Typography
-          align="center"
-          variant="body2"
-        >
-          Upgrade to PRO version and access 20 more screens
-        </Typography>
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            pt: 2
-          }}
-        >
-          <Button
-            color="primary"
-            component="a"
-            href="https://react-material-kit.devias.io"
-            variant="contained"
-          >
-            See PRO version
-          </Button>
-        </Box>
       </Box>
     </Box>
   );

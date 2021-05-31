@@ -30,9 +30,11 @@
     "@emotion/styled": "^11.1.5",
     "@material-ui/core": "^5.0.0-alpha.28",
     "@material-ui/icons": "^5.0.0-alpha.28",
+    "@material-ui/lab": "*",
     "@material-ui/styles": "^4.10.0",
     "chart.js": "^2.9.4",
     "clsx": "^1.1.1",
+    "firebase": "^8.6.2",
     "formik": "^2.1.5",
     "history": "^5.0.0",
     "install": "^0.13.0",
@@ -46,14 +48,20 @@
     "react-dom": "^17.0.2",
     "react-feather": "^2.0.8",
     "react-helmet": "^6.1.0",
+    "react-if": "^4.0.1",
     "react-perfect-scrollbar": "^1.5.8",
+    "react-redux": "^7.2.4",
     "react-router": "^6.0.0-beta.0",
     "react-router-dom": "^6.0.0-beta.0",
     "react-scripts": "^4.0.0",
+    "redux-persist": "^6.0.0",
+    "redux-thunk": "^2.3.0",
     "uuid": "^8.3.0",
     "yup": "^0.29.3"
   },
   "devDependencies": {
-    "eslint-config-airbnb": "^18.2.1"
+    "eslint-config-airbnb": "^18.2.1",
+    "firebase-functions": "^3.14.1",
+    "redux": "^4.1.0"
   }
 }
