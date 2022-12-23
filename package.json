@@ -61,7 +61,7 @@
   },
   "devDependencies": {
     "eslint-config-airbnb": "^18.2.1",
-    "firebase-functions": "^3.14.1",
+    "firebase-functions": "^3.24.1",
     "redux": "^4.1.0"
   }
 }
